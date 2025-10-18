@@ -1,0 +1,146 @@
+#include <iostream>
+#include <iomanip>
+#define MAX_TRAINS 100
+#define MAX_PLATFORMS 10
+using namespace std;
+
+int main() {
+    int n, p; // Number of trains and platforms
+    int arrival[MAX_TRAINS], departure[MAX_TRAINS], priority[MAX_TRAINS], type[MAX_TRAINS];
+    int maintenance_start[MAX_PLATFORMS], maintenance_end[MAX_PLATFORMS];
+    int assigned_platform[MAX_TRAINS]; // Platform assigned to each train
+    int platform_status[MAX_PLATFORMS] = {0}; // 0: available, 1: occupied
+    int platform_end_time[MAX_PLATFORMS] = {0}; // Next free time for each platform
+    int max_platforms = 0, platforms_needed = 0;
+
+    // Input: Number of trains and platforms
+    cout << "Enter the number of trains: ";
+    cin >> n;
+    cout << "Enter the number of platforms: ";
+    cin >> p;
+
+    // Input: Train details
+    for (int i = 0; i < n; i++) {
+        cout << "Enter arrival time (HHMM), departure time (HHMM), "
+             << "priority (1=High, 2=Medium, 3=Low), and type "
+             << "(0=Express, 1=Goods, 2=Local) for train " << i + 1 << ": ";
+
+        int arr, dep, pri, typ;
+        cin >> arr >> dep >> pri >> typ;
+
+        // Convert HHMM format to minutes since midnight
+        arrival[i] = (arr / 100) * 60 + (arr % 100);
+        departure[i] = (dep / 100) * 60 + (dep % 100);
+        priority[i] = pri;
+        type[i] = typ;
+        assigned_platform[i] = -1; // Initially, no platform assigned
+    }
+
+    // Input: Platform maintenance schedules
+    for (int i = 0; i < p; i++) {
+        cout << "Enter maintenance start (HHMM) and end time (HHMM) for platform " << i + 1 << ": ";
+        int start, end;
+        cin >> start >> end;
+
+        maintenance_start[i] = (start / 100) * 60 + (start % 100);
+        maintenance_end[i] = (end / 100) * 60 + (end % 100);
+    }
+
+    // Allocate platforms for each train
+    for (int i = 0; i < n; i++) {
+        bool platform_assigned = false;
+
+        // Try to find an available platform
+        for (int j = 0; j < p; j++) {
+            if (platform_status[j] == 0 &&
+                arrival[i] >= platform_end_time[j] &&
+                (departure[i] <= maintenance_start[j] || arrival[i] >= maintenance_end[j])) {
+
+                // Assign this platform to the train
+                platform_status[j] = 1;
+                platform_end_time[j] = departure[i];
+                assigned_platform[i] = j + 1;
+                platforms_needed++;
+                max_platforms = max(max_platforms, platforms_needed);
+                platform_assigned = true;
+                break;
+            }
+        }
+
+        // Release platforms that are now free
+        for (int j = 0; j < p; j++) {
+            if (platform_end_time[j] <= arrival[i]) {
+                platform_status[j] = 0;
+                platforms_needed--;
+            }
+        }
+
+        // If no platform was assigned, print a rejection message
+        if (!platform_assigned) {
+            cout << "Train " << i + 1 << " could not be assigned to any platform.\n";
+        }
+    }
+
+    // Display results
+    cout << "\nMinimum number of platforms required to avoid delays: " << max_platforms << endl;
+    cout << "Train platform assignments:\n";
+    for (int i = 0; i < n; i++) {
+        if (assigned_platform[i] != -1) {
+            cout << "Train " << i + 1 << " assigned to platform " << assigned_platform[i] << endl;
+        } else {
+            cout << "Train " << i + 1 << " could not be assigned a platform.\n";
+        }
+    }
+
+    // Display platform status and next free time
+    cout << "\nPlatform Status and Train Schedule:\n";
+    cout << "------------------------------------\n";
+    cout << "Platform\tStatus\tNext Free Time\n";
+    for (int j = 0; j < p; j++) {
+        cout << "Platform " << j + 1 << ":\t";
+        if (platform_status[j] == 1) {
+            cout << "Occupied\t";
+            int end_hour = platform_end_time[j] / 60;
+            int end_min = platform_end_time[j] % 60;
+            cout << "Until " << setfill('0') << setw(2) << end_hour << ":" << setw(2) << end_min;
+        } else {
+            cout << "Available";
+        }
+        cout << endl;
+    }
+
+    // Train schedule summary
+    cout << "\nTrain Schedule:\n";
+    cout << "Train\tArrival\tDeparture\tPlatform\tType\tPriority\n";
+    for (int i = 0; i < n; i++) {
+        int arr_hour = arrival[i] / 60;
+        int arr_min = arrival[i] % 60;
+        int dep_hour = departure[i] / 60;
+        int dep_min = departure[i] % 60;
+
+        cout << "Train " << setw(2) << i + 1 << "\t"
+             << setfill('0') << setw(2) << arr_hour << ":" << setw(2) << arr_min << "\t"
+             << setfill('0') << setw(2) << dep_hour << ":" << setw(2) << dep_min << "\t";
+
+        if (assigned_platform[i] != -1) {
+            cout << setw(2) << assigned_platform[i] << "\t\t";
+        } else {
+            cout << "None\t\t";
+        }
+
+        switch (type[i]) {
+            case 0: cout << "Express\t"; break;
+            case 1: cout << "Goods\t"; break;
+            case 2: cout << "Local\t"; break;
+        }
+
+        switch (priority[i]) {
+            case 1: cout << "High"; break;
+            case 2: cout << "Medium"; break;
+            case 3: cout << "Low"; break;
+        }
+        cout << endl;
+    }
+
+    return 0;
+}
